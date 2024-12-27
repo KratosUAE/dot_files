@@ -46,9 +46,8 @@ export SCRIPTS="$DOTFILES/scripts"
 export GOBIN="$HOME/.local/bin"
 export GOPRIVATE="github.com/$GITUSER/*,gitlab.com/$GITUSER/*"
 
-export TMUX_CONF=~/.aux/configs/tmux.config
 
-
+# Path
 
 
 export PATH=$PATH:/usr/local/go/bin
@@ -70,14 +69,6 @@ path=($^path(N-/))
 ###
 export PATH
 
-
-##export NVM_DIR="$HOME/.nvm"
-##[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-##[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_comple
-
-
-# Включаем формат таймстемпа (например, дату и время)
-#export HIST_STAMPS="yyyy-mm-dd hh:mm:ss"
 
 # Настройки истории
 HISTFILE=~/.zsh_history       # Файл для сохранения истории
