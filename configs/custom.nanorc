@@ -1,0 +1,9 @@
+syntax "zsh_functions" "zsh_functions$"
+
+color blue "^ *function +[a-zA-Z_][a-zA-Z0-9_]* *\(\)" 
+color green "\<(if|then|else|fi|for|do|done|while|case|esac|return|shift|local)\>" 
+color yellow "\<(echo|sudo|systemctl)\>"               
+color magenta "\$\w+"                                  
+color cyan "\"[^\"]*\""                                
+color cyan "'[^']*'"                                  
+color red "#.*$"                                       

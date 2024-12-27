@@ -1,0 +1,65 @@
+#_____________________________________________________________Systemctl
+
+
+function sstatus() {
+  if [ $# -lt 1 ]; then
+    echo "Error: Missing service name. Usage: sstatus <service_name> [optional_arg]" >&2
+    return 1
+  fi
+
+  local service="$1"         # Первый аргумент — имя сервиса
+  shift
+  local extra_arg="$@"   # Второй аргумент — опциональный. Если не задан, будет пустым.
+
+  if [ -n "$extra_arg" ]; then
+   sudo systemctl status "${service}.service" "${extra_arg}"
+  else
+   sudo systemctl status "${service}.service"
+  fi
+}
+
+
+function sstart() {
+if [ $# -lt 1 ]; then
+    echo "Error: Missing service name. Usage: sstart <service_name>" >&2
+    return 1
+  fi
+
+  local service="$1" # Первый аргумент передается как имя сервиса
+  sudo systemctl start "${service}.service"
+}
+
+
+function sstop() {
+if [ $# -lt 1 ]; then
+    echo "Error: Missing service name. Usage: sstop <service_name>" >&2
+    return 1
+  fi
+
+  local service="$1" # Первый аргумент передается как имя сервиса
+  sudo systemctl stop "${service}.service"
+}
+
+function srestart() {
+if [ $# -lt 1 ]; then
+    echo "Error: Missing service name. Usage: srestart <service_name>" >&2
+    return 1
+  fi
+
+  local service="$1" # Первый аргумент передается как имя сервиса
+  sudo systemctl restart "${service}.service"
+}
+
+# ______________________________________________________TMUX 
+
+function tmux2() {
+tmux new-session \; split-window -h \; attach
+
+}
+
+function tmux3() {
+tmux new-session \; split-window -h \; select-pane -t 1 \; split-window -v \; attach
+
+}
+
+
