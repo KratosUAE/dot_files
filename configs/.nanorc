@@ -1,1 +1,8 @@
+set mouse
+set tabsize 2
+set tabstospaces
+set autoindent
+set linenumbers
+set indicator
+
 include ~/.aux/configs/custom.nanorc
