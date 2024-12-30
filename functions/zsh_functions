@@ -62,4 +62,31 @@ tmux new-session \; split-window -h \; select-pane -t 1 \; split-window -v \; at
 
 }
 
+#__________________________________________________GIT
+function conf2git() {
+  # Переходим в директорию ~/.aux
+  if [ -d "$HOME/.aux" ]; then
+    cd "$HOME/.aux" || { echo "Failed to enter ~/.aux directory"; return 1; }
+  else
+    echo "Directory ~/.aux does not exist!"
+    return 1
+  fi
+
+  # Добавляем все изменения
+  git add .
+
+  # Проверяем, есть ли параметры командной строки
+  if [ $# -eq 0 ]; then
+    # Если параметров нет, используем стандартный комментарий
+    git commit -m "Some changes"
+  else
+    # Если параметры есть, используем их как комментарий
+    git commit -m "$*"
+  fi
+
+  # Выполняем git push
+  git push
+}
+
+
 
