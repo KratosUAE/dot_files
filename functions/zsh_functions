@@ -90,3 +90,19 @@ function conf2git() {
 
 
 
+function git2conf() {
+  # Переходим в директорию ~/.aux
+  if [ -d "$HOME/.aux" ]; then
+    cd "$HOME/.aux" || { echo "Failed to enter ~/.aux directory"; return 1; }
+  else
+    echo "Directory ~/.aux does not exist!"
+    return 1
+  fi
+
+  # Выполняем git pull
+  echo "Pulling latest changes from origin/main..."
+  git pull origin main || { echo "Failed to pull changes!"; return 1; }
+
+  echo "Successfully pulled changes."
+}
+
