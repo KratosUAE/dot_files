@@ -8,3 +8,4 @@ It is a repo of my .files
 
 #### It has embedded functions conf2git and git2conf for further push and pull configs.
 
+The zsh and ohmyzsh installation lines are already included into script.
