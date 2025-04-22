@@ -31,7 +31,7 @@ alias dhist="history -d"
 #Functions
 
 source ~/.aux/functions/zsh_functions
-
+source ~/.aux/functions/language
 
 
 # Directories
@@ -53,6 +53,8 @@ export GOPRIVATE="github.com/$GITUSER/*,gitlab.com/$GITUSER/*"
 export PATH=$PATH:/usr/local/go/bin
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
+export PATH=$PATH:/usr/local/tinygo/bin
+
 
 path=(
     $path                           # Keep existing PATH entries
