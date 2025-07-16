@@ -21,12 +21,29 @@ alias apdate="sudo apt update"
 alias apgrade="sudo apt upgrade"
 alias apti="sudo apt install"
 alias du="du -h"
+alias df='df -h'
+alias duh='du -sh *'
 alias ccat="pygmentize -g"
 alias catc="batcat --style=plain --paging=never"
 alias SmokeT="sudo nano /etc/smokeping/config.d/Targets"
 alias SmokeP="sudo nano /etc/smokeping/config.d/Probes"
 alias docker="sudo docker"
 alias dhist="history -d"
+alias zshrc='nano ~/.zshrc'
+alias myip='curl ifconfig.me'
+alias -g G='| grep'
+alias ll='ls -alF --color=auto'
+alias gs='git status'
+alias la='ls -A --color=auto'
+alias l='ls -CF --color=auto'
+alias rm='rm -i'
+alias grep='grep --color=auto'
+alias psg='ps aux | grep -v grep | grep'
+alias ports='sudo lsof -i -P -n'
+alias f='find . -name'
+alias netcon='ss -tulwn'
+alias usage='du -sh .'
+
 
 #Functions
 
@@ -78,7 +95,37 @@ HISTSIZE=100000               # Количество строк в истори�
 SAVEHIST=100000               # Количество строк для сохранения между сессиями
 setopt EXTENDED_HISTORY       # Включаем таймстемпы в истории
 setopt HIST_IGNORE_SPACE  # Don't save when prefixed with space
-setopt HIST_IGNORE_DUPS   # Don't save duplicate lines
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
+setopt SHARE_HISTORY
+setopt INC_APPEND_HISTORY
+
+#ZSH settings
+setopt AUTO_CD
+setopt CORRECT
+setopt NUMERIC_GLOB_SORT
+setopt HIST_FIND_NO_DUPS
+setopt AUTO_PARAM_SLASH
+setopt EXTENDED_GLOB
+setopt PUSHD_SILENT
+setopt ALWAYS_TO_END
+setopt INTERACTIVE_COMMENTS
 
 
 
+
+# Key Bindings
+bindkey '^R' history-incremental-search-backward
+bindkey '^A' beginning-of-line
+bindkey '^E' end-of-line
+
+
+
+
+
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+REPORTTIME=3
