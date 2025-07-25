@@ -3,13 +3,12 @@ export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME="fino-time"
 
+# Minimal plugins for faster startup
 plugins=(
-git compleat 
-zsh-autosuggestions 
-colorize 
+git
 history
+zsh-autosuggestions
 zsh-syntax-highlighting
-colored-man-pages
 )
 
 ZSH_COLORIZE_STYLE="colorful"
@@ -126,9 +125,27 @@ bindkey '^E' end-of-line
 
 
 
+# Lazy load NVM for faster startup
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+nvm() {
+    unset -f nvm
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    nvm "$@"
+}
+
+# Lazy aliases for common Node commands
+node() {
+    unset -f node
+    nvm >/dev/null 2>&1  # Load NVM silently
+    node "$@"
+}
+
+npm() {
+    unset -f npm
+    nvm >/dev/null 2>&1  # Load NVM silently
+    npm "$@"
+}
 REPORTTIME=3
 
 # Show active tmux sessions on login
