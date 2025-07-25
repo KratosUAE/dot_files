@@ -9,7 +9,8 @@ zsh-autosuggestions
 colorize 
 history
 zsh-syntax-highlighting
-colored-man-pages)
+colored-man-pages
+)
 
 ZSH_COLORIZE_STYLE="colorful"
 
