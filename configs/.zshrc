@@ -130,3 +130,14 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 REPORTTIME=3
+
+# Show active tmux sessions on login
+if command -v tmux &> /dev/null && [[ -o interactive ]] && [[ -z "$TMUX" ]]; then
+    tmux_sessions=$(tmux list-sessions 2>/dev/null)
+    if [[ $? -eq 0 && -n "$tmux_sessions" ]]; then
+        echo "Active tmux sessions:"
+        echo "$tmux_sessions"
+        echo "Use 'tmux attach -t <session>' to connect or 'tmux attach' for the last session"
+        echo ""
+    fi
+fi

@@ -62,6 +62,36 @@ tmux new-session \; split-window -h \; select-pane -t 1 \; split-window -v \; at
 
 }
 
+#__________________________________________________CLI_TOOLS
+
+# Modern CLI tool aliases and functions
+if command -v exa &> /dev/null; then
+    alias ls="exa --color=auto --group-directories-first"
+    alias ll="exa -la --color=auto --group-directories-first"
+    alias la="exa -a --color=auto --group-directories-first"
+    alias tree="exa --tree"
+    alias lt="exa -la --sort=modified --reverse"  # List by time
+fi
+
+if command -v bat &> /dev/null; then
+    alias cat="bat --style=plain --paging=never"
+    alias batl="bat --style=numbers,changes --paging=auto"  # bat with line numbers
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+fi
+
+if command -v fdfind &> /dev/null; then
+    alias fd="fdfind"
+    alias find="fdfind"
+elif command -v fd &> /dev/null; then
+    alias find="fd"
+fi
+
+if command -v rg &> /dev/null; then
+    alias grep="rg --color=auto"
+    alias rgi="rg -i"  # case insensitive
+    alias rgf="rg --files"  # list files that would be searched
+fi
+
 #__________________________________________________GIT
 function conf2git() {
 
