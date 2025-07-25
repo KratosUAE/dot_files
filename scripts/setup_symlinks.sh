@@ -50,6 +50,15 @@ for PLUGIN in "${PLUGINS[@]}"; do
   fi
 done
 
+# Setup Claude Code agents symlink
+echo "Setting up Claude Code agents..."
+mkdir -p "$HOME/.config/claude-code"
+if [ -L "$HOME/.config/claude-code/agents" ]; then
+    rm -f "$HOME/.config/claude-code/agents"
+fi
+ln -sf "$HOME/.aux/claude-agents" "$HOME/.config/claude-code/agents"
+echo "Claude Code agents symlink created."
+
 # Обновление конфигурации
 echo "Переключение на Zsh..."
 chsh -s $(which zsh)
