@@ -27,7 +27,6 @@ alias ccat="pygmentize -g"
 alias catc="batcat --style=plain --paging=never"
 alias SmokeT="sudo nano /etc/smokeping/config.d/Targets"
 alias SmokeP="sudo nano /etc/smokeping/config.d/Probes"
-alias docker="sudo docker"
 alias dhist="history -d"
 alias zshrc='nano ~/.zshrc'
 alias myip='curl ifconfig.me'
@@ -43,6 +42,11 @@ alias ports='sudo lsof -i -P -n'
 alias f='find . -name'
 alias netcon='ss -tulwn'
 alias usage='du -sh .'
+alias agentos='/home/kratos/.agent-os/setup/project.sh'
+alias clippy='cargo clippy -- -D warnings'
+alias cargofmt='cargo fmt -- --check'
+alias check_code_lines='cloc . --exclude-dir=node_modules,dist,build,target,.git,.next,out,coverage --exclude-lang=D\n'
+alias restart_resolve='sudo systemctl restart systemd-resolved'
 
 
 #Functions
@@ -158,3 +162,12 @@ if command -v tmux &> /dev/null && [[ -o interactive ]] && [[ -z "$TMUX" ]]; the
         echo ""
     fi
 fi
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# Android SDK
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+export PATH="/home/kratos/.local/share/ragcode/bin:$PATH"

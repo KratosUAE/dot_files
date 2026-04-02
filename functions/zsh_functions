@@ -196,3 +196,26 @@ function git2conf() {
   cd "$current_dir" || { echo "Failed to return to the original directory"; return 1; }
 }
 
+
+git_new_pull() {
+      local repo_name="$1"
+
+      if [[ -z "$repo_name" ]]; then
+          echo "Usage: git_new_pull <repo_name_witout_extension>"
+          return 1
+      fi
+
+      if [[ -d "$repo_name" ]]; then
+          echo "Error: Directory '$repo_name' already exists"
+          return 1
+      fi
+
+      mkdir "$repo_name" && cd "$repo_name" && \
+      git init && \
+      git config user.name "REDACTED_USER" && \
+      git config user.email "REDACTED_EMAIL" && \
+      git remote add origin "git@REDACTED_HOST:REDACTED_USER/${repo_name}.git" && \
+      git pull origin main && \
+      echo "✓ Cloned $repo_name successfully"
+  }
+

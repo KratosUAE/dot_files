@@ -9,3 +9,10 @@ bin/
 # Исключить скрытые файлы, кроме конфигов
 #.*
 !.gitignore
+
+# Приватные скрипты
+scripts/vasp-mount.sh
+scripts/create_unit.sh
+scripts/deploy.sh
+scripts/pull_zammad.sh
+scripts/sscontrol.sh
