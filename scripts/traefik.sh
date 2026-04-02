@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Auto-detect traefik container name
-CONTAINER=$(docker ps --format '{{.Names}}' | grep -i traefik | head -1)
+CONTAINER=$(docker ps --format '{{.Names}}' | grep -i traefik | head -1 || true)
 if [ -z "$CONTAINER" ]; then
     echo "Error: no running Traefik container found." >&2
     exit 1
@@ -12,6 +12,38 @@ fi
 
 LOG_PATH="/var/log/traefik/access.log"
 ACME_PATH="/letsencrypt/acme.json"
+
+# Load ipinfo token from .env
+ENV_FILE="$HOME/.aux/.env"
+IPINFO_TOKEN=""
+if [ -f "$ENV_FILE" ]; then
+    IPINFO_TOKEN=$(grep -E '^IPINFO_TOKEN=' "$ENV_FILE" | cut -d'=' -f2 | tr -d '"' || true)
+fi
+
+# Resolve IP to "city, country" via ipinfo.io (cached per session)
+declare -A _ip_cache
+ip_lookup() {
+    local ip="$1"
+    if [ -z "$IPINFO_TOKEN" ]; then echo ""; return; fi
+    if [[ -v _ip_cache["$ip"] ]]; then echo "${_ip_cache[$ip]}"; return; fi
+    local json
+    json=$(curl -s --max-time 2 "https://ipinfo.io/$ip/json?token=$IPINFO_TOKEN" 2>/dev/null || true)
+    local info=""
+    if [ -n "$json" ]; then
+        info=$(echo "$json" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    parts = [p for p in [d.get('city',''), d.get('country','')] if p]
+    org = d.get('org','')
+    if org: parts.append(org)
+    print(', '.join(parts))
+except: pass
+" 2>/dev/null || true)
+    fi
+    _ip_cache["$ip"]="$info"
+    echo "$info"
+}
 
 usage() {
     cat <<EOF
@@ -86,6 +118,16 @@ cmd_log() {
         else if (status >= 200 && status < 300) printf "\033[32m%s\033[0m\n", $0
         else print $0
     }'
+
+    # Show IP geo info when filtering by specific IP
+    if [ -n "$filter_ip" ] && [ -n "$IPINFO_TOKEN" ]; then
+        local geo
+        geo=$(ip_lookup "$filter_ip")
+        if [ -n "$geo" ]; then
+            echo -e "IP: $filter_ip  (\033[36m$geo\033[0m)"
+            echo "─────────────────────────────────────────"
+        fi
+    fi
 
     if [ "$lines" = "0" ]; then
         echo "Following $CONTAINER access log (Ctrl+C to stop)..."
@@ -189,13 +231,14 @@ cmd_top() {
     log_data=$(docker exec "$CONTAINER" cat "$LOG_PATH" 2>/dev/null)
 
     echo "$log_data" | python3 -c "
-import sys
+import sys, json, urllib.request
 from datetime import datetime, timedelta, timezone
 
 lines_limit = $lines
 seconds = $seconds
 mode = '$mode'
 status_filter = '$status_filter'
+ipinfo_token = '$IPINFO_TOKEN'
 
 cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=seconds)
 counts = {}
@@ -247,18 +290,47 @@ if not sorted_items:
     print('No data for the specified time window.')
     sys.exit(0)
 
+# Resolve IPs via ipinfo.io (batch)
+geo_cache = {}
+def ip_geo(ip):
+    if ip in geo_cache:
+        return geo_cache[ip]
+    if not ipinfo_token:
+        geo_cache[ip] = ''
+        return ''
+    try:
+        req = urllib.request.urlopen(
+            f'https://ipinfo.io/{ip}/json?token={ipinfo_token}', timeout=2)
+        d = json.loads(req.read())
+        parts = [p for p in [d.get('city',''), d.get('country','')] if p]
+        org = d.get('org','')
+        if org: parts.append(org)
+        info = ', '.join(parts)
+    except:
+        info = ''
+    geo_cache[ip] = info
+    return info
+
+# Check if keys are IPs (for geo enrichment)
+show_geo = ipinfo_token and mode in ('ip', 'ip-status')
+
 max_count = sorted_items[0][1] if sorted_items else 1
 max_key_len = max(len(k) for k, _ in sorted_items)
-bar_max = 40
+bar_max = 30 if show_geo else 40
 
 header = mode.upper().replace('IP-STATUS', f'IP (status {status_filter})')
 print(f'Top {header} (last $since):')
-print(f'{\"\":-<{max_key_len + 60}}')
+print(f'{\"\":-<{max_key_len + 70}}')
 
 for key, count in sorted_items:
     bar_len = int(count / max_count * bar_max)
     bar = '█' * bar_len
-    print(f'  {key:<{max_key_len}}  {count:>6}  {bar}')
+    if show_geo:
+        geo = ip_geo(key)
+        geo_str = f'  \033[36m{geo}\033[0m' if geo else ''
+        print(f'  {key:<{max_key_len}}  {count:>6}  {bar}{geo_str}')
+    else:
+        print(f'  {key:<{max_key_len}}  {count:>6}  {bar}')
 "
 }
 
