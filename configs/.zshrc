@@ -42,7 +42,7 @@ alias ports='sudo lsof -i -P -n'
 alias f='find . -name'
 alias netcon='ss -tulwn'
 alias usage='du -sh .'
-alias agentos='/home/kratos/.agent-os/setup/project.sh'
+alias agentos="$HOME/.agent-os/setup/project.sh"
 alias clippy='cargo clippy -- -D warnings'
 alias cargofmt='cargo fmt -- --check'
 alias check_code_lines='cloc . --exclude-dir=node_modules,dist,build,target,.git,.next,out,coverage --exclude-lang=D\n'
@@ -171,4 +171,4 @@ export NVM_DIR="$HOME/.nvm"
 export ANDROID_HOME=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
 
-export PATH="/home/kratos/.local/share/ragcode/bin:$PATH"
+export PATH="$HOME/.local/share/ragcode/bin:$PATH"
