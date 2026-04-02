@@ -51,6 +51,7 @@ alias restart_resolve='sudo systemctl restart systemd-resolved'
 
 #Functions
 
+[[ -f ~/.aux/.env ]] && source ~/.aux/.env
 source ~/.aux/functions/zsh_functions
 source ~/.aux/functions/language
 

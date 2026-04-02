@@ -212,9 +212,9 @@ git_new_pull() {
 
       mkdir "$repo_name" && cd "$repo_name" && \
       git init && \
-      git config user.name "REDACTED_USER" && \
-      git config user.email "REDACTED_EMAIL" && \
-      git remote add origin "git@REDACTED_HOST:REDACTED_USER/${repo_name}.git" && \
+      git config user.name "${GIT_WORK_NAME}" && \
+      git config user.email "${GIT_WORK_EMAIL}" && \
+      git remote add origin "git@${GIT_WORK_HOST}:${GIT_WORK_NAME}/${repo_name}.git" && \
       git pull origin main && \
       echo "✓ Cloned $repo_name successfully"
   }
