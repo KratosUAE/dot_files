@@ -1,7 +1,11 @@
 #!/bin/bash
 # CrowdSec blocklist (decisions) management
 
-CONTAINER="crowdsec"
+CONTAINER=$(docker ps --format '{{.Names}}' | grep -i crowdsec | head -1)
+if [ -z "$CONTAINER" ]; then
+    echo "Error: no running CrowdSec container found." >&2
+    exit 1
+fi
 
 usage() {
     echo "Usage: $0 --list | --add <IP> [--reason <reason>] [--duration <duration>] | --remove <IP>"

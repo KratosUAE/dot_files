@@ -1,7 +1,12 @@
 #!/bin/bash
 # CrowdSec whitelist management (parsers/s02-enrich/whitelists.yaml inside container)
 
-CONTAINER="crowdsec"
+CONTAINER=$(docker ps --format '{{.Names}}' | grep -i crowdsec | head -1)
+if [ -z "$CONTAINER" ]; then
+    echo "Error: no running CrowdSec container found." >&2
+    exit 1
+fi
+
 WHL_FILE="/etc/crowdsec/parsers/s02-enrich/whitelists.yaml"
 
 usage() {
