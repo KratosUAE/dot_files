@@ -45,6 +45,17 @@ except: pass
     echo "$info"
 }
 
+# Detect log format: json or clf
+detect_format() {
+    local sample
+    sample=$(docker exec "$CONTAINER" head -1 "$LOG_PATH" 2>/dev/null || true)
+    if echo "$sample" | python3 -c "import sys,json; json.load(sys.stdin)" 2>/dev/null; then
+        echo "json"
+    else
+        echo "clf"
+    fi
+}
+
 usage() {
     cat <<EOF
 Usage: $0 <command> [options]
@@ -55,6 +66,8 @@ Commands:
     --ip <IP>             Filter by IP
     --status <code>       Filter by status code (e.g. 502, 4xx, 5xx)
     --path <path>         Filter by URL path
+
+  --version             Show Traefik version
 
   --certs               Show SSL certificates and expiry dates
 
@@ -95,6 +108,104 @@ cmd_log() {
         esac
     done
 
+    local fmt
+    fmt=$(detect_format)
+
+    # Show IP geo info when filtering by specific IP
+    if [ -n "$filter_ip" ] && [ -n "$IPINFO_TOKEN" ]; then
+        local geo
+        geo=$(ip_lookup "$filter_ip")
+        if [ -n "$geo" ]; then
+            echo -e "IP: $filter_ip  (\033[36m$geo\033[0m)"
+            echo "─────────────────────────────────────────"
+        fi
+    fi
+
+    if [ "$fmt" = "json" ]; then
+        cmd_log_json "$lines" "$filter_ip" "$filter_status" "$filter_path"
+    else
+        cmd_log_clf "$lines" "$filter_ip" "$filter_status" "$filter_path"
+    fi
+}
+
+cmd_log_json() {
+    local lines="$1" filter_ip="$2" filter_status="$3" filter_path="$4"
+
+    local py_script='
+import sys, json
+
+filter_ip = "'"$filter_ip"'"
+filter_status = "'"$filter_status"'"
+filter_path = "'"$filter_path"'"
+
+RED = "\033[31m"
+YELLOW = "\033[33m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        e = json.loads(line)
+    except:
+        continue
+
+    ip = e.get("ClientHost", e.get("ClientAddr", "-")).split(":")[0]
+    status = int(e.get("DownstreamStatus", e.get("OriginStatus", 0)))
+    method = e.get("RequestMethod", "-")
+    path = e.get("RequestPath", "-")
+    router = e.get("RouterName", "-")
+    duration = e.get("Duration", 0)
+    ts = e.get("StartUTC", e.get("time", "-"))
+    if isinstance(ts, str) and "T" in ts:
+        ts = ts.split("T")[1][:8]
+
+    # Filters
+    if filter_ip and ip != filter_ip:
+        continue
+    if filter_status:
+        if filter_status == "4xx" and not (400 <= status < 500): continue
+        elif filter_status == "5xx" and not (500 <= status < 600): continue
+        elif filter_status not in ("4xx", "5xx") and status != int(filter_status): continue
+    if filter_path and filter_path not in path:
+        continue
+
+    # Duration
+    if isinstance(duration, (int, float)):
+        if duration > 1_000_000_000:
+            dur_str = f"{duration/1_000_000_000:.0f}s"
+        elif duration > 1_000_000:
+            dur_str = f"{duration/1_000_000:.0f}ms"
+        else:
+            dur_str = f"{duration/1_000:.0f}us"
+    else:
+        dur_str = str(duration)
+
+    out = f"{ts}  {ip:<15}  {status}  {method:<6} {path:<40} {dur_str:>8}  {router}"
+
+    if status >= 500:
+        print(f"{RED}{out}{RESET}")
+    elif status >= 400:
+        print(f"{YELLOW}{out}{RESET}")
+    elif 200 <= status < 300:
+        print(f"{GREEN}{out}{RESET}")
+    else:
+        print(out)
+'
+
+    if [ "$lines" = "0" ]; then
+        echo "Following $CONTAINER access log [json] (Ctrl+C to stop)..."
+        docker exec "$CONTAINER" tail -f "$LOG_PATH" 2>/dev/null | python3 -c "$py_script"
+    else
+        docker exec "$CONTAINER" tail -n "$lines" "$LOG_PATH" 2>/dev/null | python3 -c "$py_script"
+    fi
+}
+
+cmd_log_clf() {
+    local lines="$1" filter_ip="$2" filter_status="$3" filter_path="$4"
+
     # Build awk filter
     local awk_cond="1"
     [ -n "$filter_ip" ] && awk_cond="$awk_cond && \$1 == \"$filter_ip\""
@@ -109,7 +220,6 @@ cmd_log() {
         esac
     fi
 
-    # Colorize output: red for 5xx, yellow for 4xx, green for 2xx
     local colorize='
     {
         status = $9
@@ -119,18 +229,8 @@ cmd_log() {
         else print $0
     }'
 
-    # Show IP geo info when filtering by specific IP
-    if [ -n "$filter_ip" ] && [ -n "$IPINFO_TOKEN" ]; then
-        local geo
-        geo=$(ip_lookup "$filter_ip")
-        if [ -n "$geo" ]; then
-            echo -e "IP: $filter_ip  (\033[36m$geo\033[0m)"
-            echo "─────────────────────────────────────────"
-        fi
-    fi
-
     if [ "$lines" = "0" ]; then
-        echo "Following $CONTAINER access log (Ctrl+C to stop)..."
+        echo "Following $CONTAINER access log [clf] (Ctrl+C to stop)..."
         docker exec "$CONTAINER" tail -f "$LOG_PATH" 2>/dev/null | awk "$awk_cond" | awk "$colorize"
     else
         docker exec "$CONTAINER" tail -n "$lines" "$LOG_PATH" 2>/dev/null | awk "$awk_cond" | awk "$colorize"
@@ -227,70 +327,113 @@ cmd_top() {
         *)  seconds=86400 ;;
     esac
 
-    local log_data
-    log_data=$(docker exec "$CONTAINER" cat "$LOG_PATH" 2>/dev/null)
+    local fmt
+    fmt=$(detect_format)
 
-    echo "$log_data" | python3 -c "
-import sys, json, urllib.request
+    # Aggregate data — "count key" lines
+    local agg_data
+
+    if [ "$fmt" = "clf" ]; then
+        # CLF: aggregate inside container with awk (fast, no pipe of full log)
+        local cutoff
+        cutoff=$(date -u -d "-${seconds} seconds" '+%d/%b/%Y:%H:%M:%S')
+
+        local awk_field='$1'
+        local awk_status_filter=""
+        case "$mode" in
+            ip)        awk_field='$1' ;;
+            url)       awk_field='$7' ;;
+            status)    awk_field='$9' ;;
+            ip-status)
+                awk_field='$1'
+                if [[ "$status_filter" == *xx ]]; then
+                    local prefix="${status_filter:0:1}"
+                    awk_status_filter="substr(\$9,1,1)!=\"$prefix\"{next}"
+                else
+                    awk_status_filter="\$9!=\"$status_filter\"{next}"
+                fi
+                ;;
+        esac
+
+        agg_data=$(docker exec "$CONTAINER" sh -c "
+            awk '
+                {
+                    ts=substr(\$4,2)
+                    if (ts < \"$cutoff\") next
+                    $awk_status_filter
+                    key=$awk_field
+                    c[key]++
+                }
+                END { for(k in c) print c[k], k }
+            ' \"$LOG_PATH\" | sort -rn | head -n $lines
+        " 2>/dev/null)
+    else
+        # JSON: aggregate with python inside container
+        agg_data=$(docker exec "$CONTAINER" python3 -c "
+import json, sys
 from datetime import datetime, timedelta, timezone
 
-lines_limit = $lines
-seconds = $seconds
+cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=$seconds)
 mode = '$mode'
+status_filter = '$status_filter'
+counts = {}
+
+for line in open('$LOG_PATH'):
+    line = line.strip()
+    if not line: continue
+    try:
+        e = json.loads(line)
+    except: continue
+    ip = e.get('ClientHost', e.get('ClientAddr', '-')).split(':')[0]
+    status = str(e.get('DownstreamStatus', e.get('OriginStatus', 0)))
+    path = e.get('RequestPath', '-')
+    ts_str = e.get('StartUTC', e.get('time', ''))
+    try:
+        ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00')).replace(tzinfo=None)
+    except: continue
+    if ts < cutoff: continue
+
+    if mode == 'ip': key = ip
+    elif mode == 'url': key = path
+    elif mode == 'status': key = status
+    elif mode == 'ip-status':
+        if status_filter.endswith('xx'):
+            if not status.startswith(status_filter[0]): continue
+        elif status != status_filter: continue
+        key = ip
+    else: key = ip
+    counts[key] = counts.get(key, 0) + 1
+
+for k, v in sorted(counts.items(), key=lambda x: -x[1])[:$lines]:
+    print(v, k)
+" 2>/dev/null)
+    fi
+
+    if [ -z "$agg_data" ]; then
+        echo "No data for the specified time window."
+        return
+    fi
+
+    # Pretty-print + geo lookup (only ~20 lines come through)
+    echo "$agg_data" | python3 -c "
+import sys, json, urllib.request
+
+mode = '$mode'
+since = '$since'
+log_format = '$fmt'
 status_filter = '$status_filter'
 ipinfo_token = '$IPINFO_TOKEN'
 
-cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=seconds)
-counts = {}
-
+items = []
 for line in sys.stdin:
-    line = line.strip()
-    if not line:
-        continue
-    parts = line.split()
-    if len(parts) < 10:
-        continue
+    parts = line.strip().split(None, 1)
+    if len(parts) == 2:
+        items.append((parts[1], int(parts[0])))
 
-    ip = parts[0]
-    # Parse timestamp [05/Mar/2026:12:58:59 +0000]
-    try:
-        ts_str = parts[3].lstrip('[')
-        ts = datetime.strptime(ts_str, '%d/%b/%Y:%H:%M:%S')
-    except:
-        continue
-
-    if ts < cutoff:
-        continue
-
-    status = parts[8]
-    url = parts[6] if len(parts) > 6 else '-'
-
-    if mode == 'ip':
-        key = ip
-    elif mode == 'url':
-        key = url
-    elif mode == 'status':
-        key = status
-    elif mode == 'ip-status':
-        if status_filter.endswith('xx'):
-            prefix = status_filter[0]
-            if not status.startswith(prefix):
-                continue
-        elif status != status_filter:
-            continue
-        key = ip
-    else:
-        key = ip
-
-    counts[key] = counts.get(key, 0) + 1
-
-sorted_items = sorted(counts.items(), key=lambda x: -x[1])[:lines_limit]
-
-if not sorted_items:
+if not items:
     print('No data for the specified time window.')
     sys.exit(0)
 
-# Resolve IPs via ipinfo.io (batch)
 geo_cache = {}
 def ip_geo(ip):
     if ip in geo_cache:
@@ -311,20 +454,19 @@ def ip_geo(ip):
     geo_cache[ip] = info
     return info
 
-# Check if keys are IPs (for geo enrichment)
 show_geo = ipinfo_token and mode in ('ip', 'ip-status')
 
-max_count = sorted_items[0][1] if sorted_items else 1
-max_key_len = max(len(k) for k, _ in sorted_items)
+max_count = items[0][1] if items else 1
+max_key_len = max(len(k) for k, _ in items)
 bar_max = 30 if show_geo else 40
 
 header = mode.upper().replace('IP-STATUS', f'IP (status {status_filter})')
-print(f'Top {header} (last $since):')
+print(f'Top {header} (last {since}) [{log_format}]:')
 print(f'{\"\":-<{max_key_len + 70}}')
 
-for key, count in sorted_items:
+for key, count in items:
     bar_len = int(count / max_count * bar_max)
-    bar = '█' * bar_len
+    bar = chr(9608) * bar_len
     if show_geo:
         geo = ip_geo(key)
         geo_str = f'  \033[36m{geo}\033[0m' if geo else ''
@@ -339,9 +481,10 @@ for key, count in sorted_items:
 [ $# -eq 0 ] && usage
 
 case "$1" in
-    --log)    shift; cmd_log "$@" ;;
-    --certs)  shift; cmd_certs "$@" ;;
-    --top)    shift; cmd_top "$@" ;;
+    --log)     shift; cmd_log "$@" ;;
+    --version) docker exec "$CONTAINER" traefik version ;;
+    --certs)   shift; cmd_certs "$@" ;;
+    --top)     shift; cmd_top "$@" ;;
     -h|--help) usage ;;
     *)        usage ;;
 esac
