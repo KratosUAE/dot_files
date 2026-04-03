@@ -116,8 +116,8 @@ cmd_status() {
     echo -e "${CYAN}=== CRS version ===${NC}"
     _exec sh -c 'cat /opt/owasp-crs/VERSION 2>/dev/null || echo "unknown"'
     echo ""
-    echo -e "${CYAN}=== Paranoia level ===${NC}"
-    docker logs "$CONTAINER" 2>&1 | grep 'PARANOIA' | tail -1
+    echo -e "${CYAN}=== Paranoia / Blocking ===${NC}"
+    docker logs "$CONTAINER" 2>&1 | grep -E 'PARANOIA|BLOCKING_PARANOIA'
 }
 
 # ── helpers: JSON log extraction ──────────────────────────────────────
