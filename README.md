@@ -5,7 +5,7 @@ Dotfiles + скрипты для администрирования Linux сер
 ## Установка
 
 ```bash
-git clone https://github.com/kensi-rus/dotfiles ~/.aux
+git clone https://github.com/KratosUAE/dot_files.git ~/.aux
 ~/.aux/scripts/setup_symlinks.sh
 ```
 
