@@ -368,8 +368,9 @@ cmd_top() {
             ' \"$LOG_PATH\" | sort -rn | head -n $lines
         " 2>/dev/null)
     else
-        # JSON: aggregate with python inside container
-        agg_data=$(docker exec "$CONTAINER" python3 -c "
+        # JSON: aggregate with python on host (no python3 in traefik container)
+        local host_log="/var/log/traefik/access.log"
+        agg_data=$(python3 -c "
 import json, sys
 from datetime import datetime, timedelta, timezone
 
@@ -378,7 +379,7 @@ mode = '$mode'
 status_filter = '$status_filter'
 counts = {}
 
-for line in open('$LOG_PATH'):
+for line in open('$host_log'):
     line = line.strip()
     if not line: continue
     try:
