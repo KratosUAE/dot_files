@@ -2,6 +2,8 @@
 set -euo pipefail
 
 COMPOSE="docker compose"
+COMPOSE_FILE="docker-compose.yml"
+[ -f "docker-compose.override.yml" ] && COMPOSE_FILE="docker-compose.override.yml"
 CONTAINER=$(docker ps --format '{{.Names}}' | grep -i modsecurity | head -1 || true)
 if [ -z "$CONTAINER" ]; then
     echo "Error: no running ModSecurity container found." >&2
@@ -106,7 +108,7 @@ cmd_status() {
     docker ps --filter "name=$CONTAINER" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     echo ""
     echo -e "${CYAN}=== Engine ===${NC}"
-    grep -oP 'MODSEC_RULE_ENGINE=\K.*' docker-compose.yml | head -1
+    grep -oP 'MODSEC_RULE_ENGINE=\K.*' $COMPOSE_FILE | head -1
     echo ""
     echo -e "${CYAN}=== Rules loaded ===${NC}"
     docker logs "$CONTAINER" 2>&1 | grep -oP 'rules loaded inline/local/remote: \K.*' | tail -1
@@ -213,8 +215,8 @@ cmd_stats() {
 
 _set_engine() {
     local mode="$1"
-    # Persist in docker-compose.yml for future restarts
-    sed -i "s/MODSEC_RULE_ENGINE=.*/MODSEC_RULE_ENGINE=$mode/" docker-compose.yml
+    # Persist in $COMPOSE_FILE for future restarts
+    sed -i "s/MODSEC_RULE_ENGINE=.*/MODSEC_RULE_ENGINE=$mode/" $COMPOSE_FILE
     # Apply immediately via override + reload (no downtime)
     docker exec "$CONTAINER" sh -c "echo 'SecRuleEngine $mode' > /etc/modsecurity.d/modsecurity-override.conf"
     _reload
@@ -246,9 +248,9 @@ cmd_paranoia() {
     echo -e "${YELLOW}Setting paranoia level to $level (requires restart)...${NC}"
     # Update env and recreate
     local current
-    current=$(grep '^      - PARANOIA=' docker-compose.yml | head -1 | cut -d= -f2)
+    current=$(grep '^      - PARANOIA=' $COMPOSE_FILE | head -1 | cut -d= -f2)
     if [ -n "$current" ]; then
-        sed -i "s/PARANOIA=${current}/PARANOIA=${level}/" docker-compose.yml
+        sed -i "s/PARANOIA=${current}/PARANOIA=${level}/" $COMPOSE_FILE
     fi
     _restart
 }
@@ -323,7 +325,7 @@ cmd_list_exclusions() {
 
 cmd_test() {
     local engine
-    engine=$(grep -oP 'MODSEC_RULE_ENGINE=\K.*' docker-compose.yml | head -1)
+    engine=$(grep -oP 'MODSEC_RULE_ENGINE=\K.*' $COMPOSE_FILE | head -1)
     if [[ "$engine" != "On" ]]; then
         echo -e "${YELLOW}WAF is in '${engine}' mode — blocks won't work. Switch to On first: ./waf.sh on${NC}"
         echo ""
