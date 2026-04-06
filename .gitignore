@@ -16,3 +16,6 @@ scripts/create_unit.sh
 scripts/deploy.sh
 scripts/pull_zammad.sh
 scripts/sscontrol.sh
+
+# Serena
+.serena/
