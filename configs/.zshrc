@@ -9,6 +9,7 @@ git
 history
 zsh-autosuggestions
 zsh-syntax-highlighting
+z
 )
 
 ZSH_COLORIZE_STYLE="colorful"
@@ -51,6 +52,7 @@ alias clippy='cargo clippy -- -D warnings'
 alias cargofmt='cargo fmt -- --check'
 alias check_code_lines='cloc . --exclude-dir=node_modules,dist,build,target,.git,.next,out,coverage --exclude-lang=D\n'
 alias restart_resolve='sudo systemctl restart systemd-resolved'
+alias s='cd $(fd --type d --hidden . ~ | fzf)'
 
 
 #Functions
