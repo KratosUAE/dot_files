@@ -151,6 +151,7 @@ alias psg='ps aux | grep -v grep | grep'
 alias ports='sudo lsof -i -P -n'
 alias f='find . -name'
 alias netcon='ss -tulwn'
+alias trace='trip'
 alias usage='du -sh .'
 alias agentos="$HOME/.agent-os/setup/project.sh"
 alias bl='~/.aux/scripts/bl.sh'
