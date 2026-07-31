@@ -9,7 +9,12 @@ git clone https://github.com/KratosUAE/dot_files.git ~/.aux
 ~/.aux/scripts/setup_symlinks.sh
 ```
 
-Скрипт установит zsh + oh-my-zsh, создаст симлинки на конфиги и подтянет плагины.
+Скрипт установит zsh, starship, fzf/zoxide/bat/eza/ripgrep, создаст симлинки на конфиги
+и подтянет плагины zsh в `~/.zsh/`. Повторный запуск безопасен — уже установленное пропускается.
+
+> **Nerd Font ставится на клиенте, а не на сервере.** При работе по SSH шрифт
+> (JetBrainsMono Nerd Font) нужен в вашем терминале, иначе иконки в промпте
+> будут квадратиками.
 
 ## Структура
 
@@ -35,7 +40,7 @@ claude-agents/  # Custom агенты для Claude Code
 | `pull_zammad.sh` | Бэкап Zammad с remote сервера, ротация по дням |
 | `go-check.sh` | Валидация Go проектов — vet, fmt, staticcheck, tests, vulncheck |
 | `vasp-mount.sh` | Монтирование/размонтирование образов дисков |
-| `setup_symlinks.sh` | Bootstrap — установка zsh, oh-my-zsh, симлинки, плагины |
+| `setup_symlinks.sh` | Bootstrap — zsh, starship, CLI-утилиты, симлинки, плагины |
 
 ## Функции zsh
 
@@ -49,6 +54,20 @@ claude-agents/  # Custom агенты для Claude Code
 
 ## Конфиги
 
-- **.zshrc** — oh-my-zsh, алиасы, PATH, история, keybindings
+- **.zshrc** — чистый zsh (без фреймворка): compinit, алиасы, PATH, история, keybindings
+- **.zshenv** — `skip_global_compinit=1` (гасит compinit из `/etc/zsh/zshrc`), cargo env
+- **starship.toml** — промпт: палитра Ubuntu, модули git/python/go/rust/node/react/docker,
+  правая строка с памятью и временем выполнения. Симлинкуется в `~/.config/`
 - **.tmux.conf** — keybindings, theme, TPM плагины, status bar
 - **.nanorc** — подсветка синтаксиса
+
+### Shell-окружение
+
+| Компонент | Назначение |
+|-----------|------------|
+| starship | промпт (`~/.local/bin`, конфиг в `~/.config/starship.toml`) |
+| fzf | Ctrl+R история, Ctrl+F файлы, Alt+C каталоги. Нужна версия ≥0.48 (`fzf --zsh`) |
+| zoxide | умный `cd` по частоте переходов, заменил плагин `z` |
+| eza / bat / ripgrep / fd | замены ls / cat / grep / find |
+| zsh-autosuggestions | серые подсказки из истории (`~/.zsh/`) |
+| zsh-syntax-highlighting | подсветка команд, подключается последней строкой `.zshrc` |

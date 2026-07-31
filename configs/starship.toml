@@ -1,0 +1,173 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Лимит на команды, которые starship запускает для определения версий (go version,
+# node -v и т.п.). Дефолт 500 мс не переживает холодный старт go после перезагрузки:
+# прогретый go отвечает за ~0.01 с, а первый запуск читает бинарь с диска.
+command_timeout = 1000
+
+# Левая строка: контекст «где я и с чем работаю»
+format = """
+[░▒▓](#E95420)\
+$os\
+$hostname\
+[](bg:#C7411F fg:#E95420)\
+$directory\
+[](fg:#C7411F bg:#8B3315)\
+$git_branch\
+$git_status\
+$git_state\
+[](fg:#8B3315 bg:#5C2410)\
+$nodejs\
+${custom.react}\
+$python\
+$rust\
+$golang\
+${custom.docker}\
+${custom.claude}\
+[](fg:#5C2410 bg:#2E1208)\
+$time\
+[ ](fg:#2E1208)\
+\n$character"""
+
+# Правая строка: метрики «что только что произошло и как машина себя чувствует»
+right_format = """$status$jobs$cmd_duration$memory_usage"""
+
+[directory]
+style = "fg:#FFE8D6 bg:#C7411F"
+format = "[ $path ]($style)"
+truncation_length = 0      # 0 = не обрезать по числу папок
+truncate_to_repo = false   # не схлопывать путь до корня git-репозитория
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+
+[hostname]
+ssh_only = true            # имя машины только в SSH-сессиях
+style = "bold fg:#FFB3A7 bg:#E95420"
+format = "[ $hostname ]($style)"
+
+[git_branch]
+symbol = ""
+style = "bg:#8B3315"
+format = '[[ $symbol $branch ](fg:#FFD9A0 bg:#8B3315)]($style)'
+
+[git_status]
+style = "bg:#8B3315"
+format = '[[($all_status$ahead_behind )](fg:#FFD9A0 bg:#8B3315)]($style)'
+
+[git_state]
+style = "bg:#8B3315"
+format = '[[($state $progress_current/$progress_total) ](fg:#FFE8D6 bg:#8B3315)]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:#5C2410"
+format = '[[ $symbol ($version) ](fg:#E95420 bg:#5C2410)]($style)'
+
+[python]
+symbol = ""
+style = "bg:#5C2410"
+# $virtualenv показывает имя активного venv — ради этого модуль и добавлен
+format = '[[ $symbol( $version)( \($virtualenv\)) ](fg:#E95420 bg:#5C2410)]($style)'
+
+[rust]
+symbol = ""
+style = "bg:#5C2410"
+format = '[[ $symbol ($version) ](fg:#E95420 bg:#5C2410)]($style)'
+
+[golang]
+symbol = ""
+style = "bg:#5C2410"
+format = '[[ $symbol ($version) ](fg:#E95420 bg:#5C2410)]($style)'
+
+# Штатный docker_context не годится: он намеренно скрывает контекст "default",
+# а других контекстов на этой машине нет. Поэтому — метка по наличию docker-файлов.
+[custom.docker]
+description = "В каталоге есть Dockerfile или compose"
+detect_files = ["Dockerfile", "docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"]
+command = "echo"
+symbol = ""
+style = "bg:#5C2410"
+format = '[[ $symbol ](fg:#E95420 bg:#5C2410)]($style)'
+
+# React не имеет штатного модуля — достаём версию из package.json
+[custom.react]
+description = "Версия React из package.json"
+detect_files = ["package.json"]
+when = 'grep -q "\"react\"" package.json'
+command = 'grep -oP "\"react\":\s*\"[\^~]?\K[0-9][0-9.]*" package.json | head -1'
+symbol = ""
+style = "bg:#5C2410"
+format = '[[ $symbol ($output) ](fg:#61DAFB bg:#5C2410)]($style)'
+
+# Claude Code тоже не имеет модуля — просто метка, что проект под Claude
+[custom.claude]
+description = "Проект под Claude Code"
+detect_files = ["CLAUDE.md"]
+detect_folders = [".claude"]
+command = "echo"
+symbol = "󰚩"
+style = "bg:#5C2410"
+format = '[[ $symbol ](fg:#E95420 bg:#5C2410)]($style)'
+
+[time]
+disabled = false
+time_format = "%R"
+style = "bg:#2E1208"
+format = '[[  $time ](fg:#D9A88C bg:#2E1208)]($style)'
+
+# ---- правая строка ----
+
+[cmd_duration]
+min_time = 2000            # показывать, только если команда шла дольше 2 с
+format = '[ $duration ](fg:#FFD9A0)'
+
+[memory_usage]
+disabled = false
+threshold = -1             # -1 = показывать всегда, а не только при нехватке
+symbol = "󰍛"
+format = '[ $symbol $ram ](fg:#D9A88C)'
+
+[status]
+disabled = false
+symbol = "✘"
+format = '[ $symbol$status ](fg:#E95420)'
+map_symbol = false
+
+[jobs]
+symbol = "󰜎"
+number_threshold = 1       # показывать начиная с одной фоновой задачи
+format = '[ $symbol$number ](fg:#FFD9A0)'
+
+[os]
+style = "bg:#E95420 fg:#2E1208"
+format = "[ $symbol ]($style)"
+disabled = false
+
+[os.symbols]
+Windows = "󰍲"
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+AOSC = ""
+Arch = "󰣇"
+Artix = "󰣇"
+EndeavourOS = ""
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+Pop = ""
