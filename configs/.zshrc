@@ -119,6 +119,7 @@ fi
 
 # В Debian/Ubuntu бинарь bat называется batcat
 if command -v batcat >/dev/null 2>&1; then
+    export BAT_THEME="Dracula"   # тема подсветки: markdown-разметка не красная
     alias bat='batcat'       # полный вид: номера строк, рамка, имя файла
     alias cat='batcat -pp'   # -pp = --style=plain --paging=never: без номеров и без less
 fi
