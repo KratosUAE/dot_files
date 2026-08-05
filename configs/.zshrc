@@ -135,6 +135,7 @@ alias apti="sudo apt install"
 alias du="du -h"
 alias df='df -h'
 alias duh='du -sh *'
+alias tv='tidy-viewer'
 # ccat намеренно не задаётся здесь — используется функция colorize_cat
 # из ~/.aux/functions/zsh_functions
 alias catc="batcat --style=plain --paging=never"
@@ -166,6 +167,7 @@ alias s='cd $(fd --type d --hidden . ~ | fzf)'
 alias back='docker compose exec crawler /teams_con crawl --backfill 1'
 alias cap='claude update'
 alias clac='claude -c'
+alias omaudit='~/.claude/scripts/omnissiah-audit.sh'
 
 # ------------------------------------------------------------
 #  Key Bindings (раньше это делал oh-my-zsh)
